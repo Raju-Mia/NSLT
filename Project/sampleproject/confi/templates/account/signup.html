@@ -1,0 +1,96 @@
+{% extends "account/base.html" %} {% load widget_tweaks %} {% block content %}
+<form id="signup_form" method="post" class="container">
+  {% csrf_token %} {% for field in form %} {{field.errors}} {{field.label_tag}}
+  {% render_field field class="form-control" placeholder=field.label %}
+  <div
+    class="invalid-feedback text-block"
+    id="invalid-feedback-{{field.name}}"
+    style="display: none"
+  ></div>
+  {% endfor %}
+
+  <button
+    class="btn btn-lg btn-primary btn-block"
+    type="button"
+    onclick="Register()"
+    id="registerNowBtn"
+  >
+    Register
+  </button>
+</form>
+
+{% endblock %} {% block js %} {{ block.super }}
+<script type="text/javascript">
+  const notyf = new Notyf();
+  function Register() {
+    let email_id = document.getElementById(`id_email`);
+    let emailFeedbackArea = document.querySelector(`#invalid-feedback-email`);
+    let passwordOne_id = document.getElementById(`id_password1`);
+    let passwordOneFeedbackArea = document.querySelector(
+      `#invalid-feedback-password1`
+    );
+    let passwordTwo_id = document.getElementById(`id_password2`);
+    let passwordTwoFeedbackArea = document.querySelector(
+      `#invalid-feedback-password2`
+    );
+
+    email_id.classList.remove("is-invalid");
+    emailFeedbackArea.style.display = "none";
+    passwordOne_id.classList.remove("is-invalid");
+    passwordOneFeedbackArea.style.display = "none";
+    passwordTwo_id.classList.remove("is-invalid");
+    passwordTwoFeedbackArea.style.display = "none";
+
+    let registerBtn = document.getElementById("registerNowBtn");
+    registerBtn.innerHTML = `Register now....`;
+    let myForm = document.getElementById("signup_form");
+    var data = new FormData(myForm);
+    $.ajax({
+      type: "POST",
+      url: "{% url 'account_signup' %}",
+      data: data,
+      cache: false,
+      processData: false,
+      contentType: false,
+
+      success: function (response) {
+        registerBtn.innerHTML = `Register now`;
+        let redirect_url = response.location;
+        window.location.href = redirect_url;
+      },
+      error: function (response) {
+        let form_errors = response.responseJSON.form.errors;
+        if (form_errors) {
+          for (var key in form_errors) {
+            notyf.error({
+              message: form_errors[key],
+              duration: 0,
+              dismissible: true,
+            });
+          }
+        }
+        let fields_name = response.responseJSON.form.fields;
+        for (var key in fields_name) {
+          let field_id = document.getElementById(`id_${key}`);
+          let feedbackAreaa = document.querySelector(
+            `#invalid-feedback-${key}`
+          );
+          if (fields_name[key].errors.length > 0) {
+            for (var fieldkey in fields_name[key].errors) {
+              field_id.classList.add("is-invalid");
+              feedbackAreaa.style.display = "block";
+              feedbackAreaa.innerHTML = `${fields_name[key].errors[fieldkey]}`;
+            }
+          } else {
+            field_id.classList.remove("is-invalid");
+            feedbackAreaa.style.display = "none";
+            field_id.classList.add("is-valid");
+          }
+        }
+        registerBtn.innerHTML = `Register now`;
+      },
+    });
+  }
+</script>
+
+{% endblock js %}

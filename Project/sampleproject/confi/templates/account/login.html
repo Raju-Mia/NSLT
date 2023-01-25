@@ -1,0 +1,94 @@
+{% extends "account/base.html" %}{% load widget_tweaks %} {% block content %}
+<form id="login_form" method="post" class="container">
+  {% csrf_token %} {% for field in form %} {{field.errors}} {{field.label_tag}}
+  {% render_field field class="form-control" placeholder=field.label %}
+  <div
+    class="invalid-feedback text-block"
+    id="invalid-feedback-{{field.name}}"
+    style="display: none"
+  ></div>
+  {% endfor %}
+
+  <button
+    id="loginBtn"
+    onclick="Login()"
+    class="btn btn-lg btn-primary btn-block"
+    type="button"
+  >
+    Login
+  </button>
+</form>
+
+{% endblock %} {% block js %} {{ block.super }}
+<script type="text/javascript">
+  const notyf = new Notyf();
+  function Login() {
+    let username_id = document.getElementById(`id_login`);
+    let usernameFeedbackArea = document.querySelector(
+      `#invalid-feedback-login`
+    );
+    let password_id = document.getElementById(`id_password`);
+    let passwordFeedbackArea = document.querySelector(
+      `#invalid-feedback-password`
+    );
+
+    username_id.classList.remove("is-invalid");
+    usernameFeedbackArea.style.display = "none";
+    password_id.classList.remove("is-invalid");
+    passwordFeedbackArea.style.display = "none";
+
+    let LoginBtn = document.getElementById("loginBtn");
+    LoginBtn.innerHTML = `Login....`;
+    let myForm = document.getElementById("login_form");
+
+    var data = new FormData(myForm);
+    $.ajax({
+      type: "POST",
+      url: "{% url 'account_login' %}",
+      data: data,
+      cache: false,
+      processData: false,
+      contentType: false,
+
+      success: function (response) {
+        LoginBtn.innerHTML = `Login`;
+        let redirect_url = response.location;
+        window.location.href = redirect_url;
+      },
+      error: function (response) {
+        console.log(response.responseJSON);
+        let form_errors = response.responseJSON.form.errors;
+        if (form_errors) {
+          for (var key in form_errors) {
+            notyf.error({
+              message: form_errors[key],
+              duration: 0,
+              dismissible: true,
+            });
+          }
+        }
+
+        let fields_name = response.responseJSON.form.fields;
+        for (var key in fields_name) {
+          let field_id = document.getElementById(`id_${key}`);
+          let feedbackAreaa = document.querySelector(
+            `#invalid-feedback-${key}`
+          );
+          if (fields_name[key].errors.length > 0) {
+            for (var fieldkey in fields_name[key].errors) {
+              field_id.classList.add("is-invalid");
+              feedbackAreaa.style.display = "block";
+              feedbackAreaa.innerHTML = `${fields_name[key].errors[fieldkey]}`;
+            }
+          } else {
+            field_id.classList.remove("is-invalid");
+            feedbackAreaa.style.display = "none";
+            field_id.classList.add("is-valid");
+          }
+        }
+        LoginBtn.innerHTML = "Login";
+      },
+    });
+  }
+</script>
+{% endblock js %}
